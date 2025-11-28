@@ -1,12 +1,14 @@
+# ==========================================
+# FILE 2: app.py (Web GUI)
+# ==========================================
+import streamlit as st
 import cv2
-import joblib
 import numpy as np
 import pandas as pd
-import streamlit as st
+import joblib
 from scipy.stats import skew
 
 
-# --- Re-implement feature extraction to ensure consistency ---
 def extract_features_deployment(image_array):
     IMG_SIZE = 224
     img = cv2.resize(image_array, (IMG_SIZE, IMG_SIZE))
@@ -22,21 +24,30 @@ def extract_features_deployment(image_array):
 
     # Preprocessing
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray, (5, 5), 0)
-    _, mask = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    # Increased Blur to remove texture
+    blur = cv2.GaussianBlur(gray, (9, 9), 0)
 
-    # Shape
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # Tuned Adaptive Threshold
+    # Block Size: 99 (Look at large area), C: 15 (Be strict about what is dark)
+    mask = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                 cv2.THRESH_BINARY_INV, 99, 15)
+
+    # Morphological Operations
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    mask_clean = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=2)
+
+    # Shape & Largest Component
+    contours, _ = cv2.findContours(mask_clean, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    area, perimeter, compactness = 0, 0, 0
+
     if contours:
         cnt = max(contours, key=cv2.contourArea)
         area = cv2.contourArea(cnt)
-        perimeter = cv2.arcLength(cnt, True)
-        if area > 0:
-            compactness = (4 * np.pi * area) / (perimeter ** 2)
-        else:
-            compactness = 0
-    else:
-        area, perimeter, compactness = 0, 0, 0
+        if area > 50:
+            perimeter = cv2.arcLength(cnt, True)
+            if perimeter > 0:
+                compactness = (4 * np.pi * area) / (perimeter ** 2)
 
     features.extend([area, perimeter, compactness])
 
@@ -54,8 +65,8 @@ st.set_page_config(page_title="DermAI Classification", layout="centered")
 
 st.title("🔬 Skin Lesion Classification")
 st.markdown("""
-This system uses **Classical Machine Vision** techniques (Otsu Thresholding, Sobel Edges, 
-Color Moments) rather than Deep Learning to classify skin lesions.
+This system uses **Classical Machine Vision** techniques (Adaptive Thresholding, Morphology, Sobel Edges) 
+to classify skin lesions.
 """)
 
 # Load Model
@@ -76,18 +87,15 @@ if uploaded_file is not None:
     file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
     image = cv2.imdecode(file_bytes, 1)
 
-    # Display
+    # Display Original
     col1, col2 = st.columns(2)
     with col1:
         st.image(image, channels="BGR", caption="Uploaded Image", use_container_width=True)
 
-    # Process
+    # Process for Prediction
     with st.spinner('Extracting Handcrafted Features...'):
-        # Extract
         features = extract_features_deployment(image)
-        # Scale
         features_scaled = scaler.transform(features)
-        # Predict
         probs = model.predict_proba(features_scaled)
         pred_idx = np.argmax(probs)
         pred_label = classes[pred_idx]
@@ -95,23 +103,77 @@ if uploaded_file is not None:
     # Results
     with col2:
         st.subheader(f"Prediction: **{pred_label}**")
-        # FIXED: probs is 2D array [[p1, p2...]], take probs[0]
         st.metric("Confidence", f"{probs[0][pred_idx] * 100:.2f}%")
 
     # Detailed Chart
     st.subheader("Class Probabilities")
-    # FIXED: Ensure 1D array for Chart
     chart_data = pd.DataFrame({
         "Class": classes,
         "Probability": probs[0] * 100
     })
     st.bar_chart(chart_data.set_index("Class"))
 
-    # Feature Visualization (Explainability)
-    with st.expander("See Internal Logic (Computer Vision Steps)"):
-        img_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        img_blur = cv2.GaussianBlur(img_gray, (5, 5), 0)
-        _, mask = cv2.threshold(img_blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    # --- UPDATED Feature Visualization (Explainability) ---
+    with st.expander("See Internal Logic (Computer Vision Pipeline Steps)", expanded=False):
+        st.info("Below are the exact transformations the system performs to extract numeric features from the image.")
 
-        st.write("**Otsu Segmentation Mask (Used for Shape Analysis):**")
-        st.image(mask, caption="Lesion Segmentation", width=300)
+        IMG_SIZE = 224
+
+        # --- Step 1 & 2 & 3 ---
+        col_prep1, col_prep2, col_prep3 = st.columns(3)
+
+        # 1. Resize
+        img_resized = cv2.resize(image, (IMG_SIZE, IMG_SIZE))
+        col_prep1.image(img_resized, channels="BGR", caption="1. Resized", use_container_width=True)
+
+        # 2. Gray
+        img_gray = cv2.cvtColor(img_resized, cv2.COLOR_BGR2GRAY)
+        col_prep2.image(img_gray, caption="2. Grayscale", use_container_width=True)
+
+        # 3. Blur
+        # Updated to (9, 9)
+        img_blur = cv2.GaussianBlur(img_gray, (9, 9), 0)
+        col_prep3.image(img_blur, caption="3. Strong Blur (9x9)", use_container_width=True)
+
+        st.divider()
+
+        # --- Step 4: Segmentation (Adaptive) ---
+        st.markdown("### 4. Adaptive Thresholding (Tuned)")
+        st.write("Using BlockSize=99 and C=15 to ignore skin texture.")
+        mask_raw = cv2.adaptiveThreshold(img_blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                         cv2.THRESH_BINARY_INV, 99, 15)
+        st.image(mask_raw, caption="Raw Adaptive Mask")
+
+        st.divider()
+
+        # --- Step 5: Morphology ---
+        st.markdown("### 5. Morphological Operations (Cleaning)")
+        st.write("Removing noise using Opening (Erosion followed by Dilation).")
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        mask_clean = cv2.morphologyEx(mask_raw, cv2.MORPH_OPEN, kernel, iterations=2)
+        st.image(mask_clean, caption="Cleaned Mask")
+
+        st.divider()
+
+        # --- Step 6: Largest Connected Component ---
+        st.markdown("### 6. Keep Largest Connected Component")
+
+        final_mask_vis = np.zeros_like(mask_clean)
+        contours, _ = cv2.findContours(mask_clean, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if contours:
+            cnt = max(contours, key=cv2.contourArea)
+            cv2.drawContours(final_mask_vis, [cnt], -1, 255, -1)
+
+        st.image(final_mask_vis, caption="Final Shape Mask")
+
+        st.divider()
+
+        # --- Step 7: Texture ---
+        st.markdown("### 7. Texture Analysis (Sobel)")
+
+        sobelx_64f = cv2.Sobel(img_gray, cv2.CV_64F, 1, 0, ksize=3)
+        sobely_64f = cv2.Sobel(img_gray, cv2.CV_64F, 0, 1, ksize=3)
+        mag = np.sqrt(sobelx_64f ** 2 + sobely_64f ** 2)
+        mag_vis = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+
+        st.image(mag_vis, caption="Edge Magnitude (Texture)")
