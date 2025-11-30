@@ -85,30 +85,35 @@ if uploaded_file is not None:
         )
 
     # --- Explainability ---
-    with st.expander("See Internal Logic (Computer Vision Pipeline Steps)", expanded=False):
+    st.divider()
+    with st.expander("See Internal Logic (Computer Vision Pipeline Steps)", expanded=True):
         st.info("Visualizing the exact steps performed by `src.features.py`")
 
         # Unpack the 4 preprocessing images
         img_resized, img_gray, img_eq, img_blur = features.preprocess_image(image)
         mask_raw, mask_clean, mask_connected = features.segment_lesion(img_blur)
         mask_final, _, _, _ = features.isolate_largest_component(mask_connected)
-        _, texture_vis = features.compute_texture_sobel(img_gray)
+
+        # --- HERE IS THE FIX ---
+        # Pass mask=mask_final so the visualization is blacked out around the lesion
+        _, texture_vis = features.compute_texture_sobel(img_gray, mask=mask_final)
+        # ---------------------
 
         img_lesion_only = cv2.bitwise_and(img_resized, img_resized, mask=mask_final)
 
-        # Row 1: Preprocessing (4 Steps now)
+        # Row 1: Preprocessing (4 Steps)
         st.markdown("### Phase 1: Preprocessing")
         c1, c2, c3, c4 = st.columns(4)
         c1.image(img_resized, channels="BGR", caption="1. Resize")
         c2.image(img_gray, caption="2. Grayscale")
-        c3.image(img_eq, caption="3. Equalized (Contrast+)")
+        c3.image(img_eq, caption="3. CLAHE (Smart Contrast)")
         c4.image(img_blur, caption="4. Blur (Reduce Noise)")
         st.divider()
 
         # Row 2: Segmentation
         st.markdown("### Phase 2: Segmentation")
         c5, c6 = st.columns(2)
-        c5.image(mask_raw, caption="5. Adaptive Threshold (From Blur)")
+        c5.image(mask_raw, caption="5. Otsu Threshold (From Blur)")
         c6.image(mask_clean, caption="6. Morph Opening (Clean)")
         st.divider()
 
@@ -122,11 +127,13 @@ if uploaded_file is not None:
         st.markdown("### Phase 3: Analysis")
         c9, c10 = st.columns(2)
         c9.image(img_lesion_only, channels="BGR", caption="9. Masked Color Source")
-        c10.image(texture_vis, caption="10. Sobel Texture")
+
+        # This will now display the masked Sobel image
+        c10.image(texture_vis, caption="10. Sobel Texture (Masked)")
 
         # Histogram
         st.write("**11. Lesion Color Histogram**")
-        fig, ax = plt.subplots(figsize=(6, 2))
+        fig, ax = plt.subplots(figsize=(10, 3))
         colors = ('b', 'g', 'r')
         for i, color in enumerate(colors):
             hist = cv2.calcHist([img_resized], [i], mask_final, [256], [0, 256])
