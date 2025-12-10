@@ -137,14 +137,13 @@ def isolate_largest_component(mask):
 
     return final_mask, area, perimeter, compactness
 
-
 def compute_texture_sobel(img_gray, mask=None):
     """
     Calculates texture score (Sobel) on RAW gray image.
     Uses mask to restrict the MEAN calculation to the lesion area only.
     """
     # 1. Calculate Gradients on the FULL image first.
-    # We do this on the full image so that the kernel (3x3) works correctly 
+    # We do this on the full image so that the kernel (3x3) works correctly
     # at the boundaries of the lesion. If we masked the image to black first,
     # the Sobel would detect massive artificial edges at the mask border.
     sobelx = cv2.Sobel(img_gray, cv2.CV_64F, 1, 0, ksize=3)
@@ -173,6 +172,33 @@ def compute_texture_sobel(img_gray, mask=None):
 
     return texture_score, magnitude_vis
 
+def compute_texture_canny(img_gray, mask=None):
+    """
+    Calculates texture score using Canny Edge Detection.
+    Score = Density of edges inside the lesion (Mean pixel intensity of edge map).
+    """
+    # Canny parameters: Threshold1 (hysteresis min), Threshold2 (hysteresis max)
+    # 100, 200 are standard starting points for 8-bit images
+    edges = cv2.Canny(img_gray, 100, 200)
+
+    # Calculate Score
+    if mask is not None:
+        # Select edge pixels inside the lesion mask
+        lesion_edges = edges[mask > 0]
+        if len(lesion_edges) > 0:
+            texture_score = np.mean(lesion_edges)
+        else:
+            texture_score = 0
+    else:
+        texture_score = np.mean(edges)
+
+    # Visualization
+    edges_vis = edges.copy()
+    if mask is not None:
+        edges_vis = cv2.bitwise_and(edges_vis, edges_vis, mask=mask)
+
+    return texture_score, edges_vis
+
 
 def extract_all_features_pipeline(image_path_or_array):
     """Master Orchestrator."""
@@ -200,7 +226,8 @@ def extract_all_features_pipeline(image_path_or_array):
     features.extend([area, perimeter, compactness])
 
     # 5. Texture (Passed mask_final here)
-    texture_score, _ = compute_texture_sobel(img_gray, mask=mask_final)
+    # slightly better performance with canny 0.7254 vs 0.7329
+    texture_score, _ = compute_texture_canny(img_gray, mask=mask_final)
     features.append(texture_score)
 
     return np.array(features)

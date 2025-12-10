@@ -96,7 +96,7 @@ if uploaded_file is not None:
 
         # --- HERE IS THE FIX ---
         # Pass mask=mask_final so the visualization is blacked out around the lesion
-        _, texture_vis = features.compute_texture_sobel(img_gray, mask=mask_final)
+        _, texture_vis = features.compute_texture_canny(img_gray, mask=mask_final)
         # ---------------------
 
         img_lesion_only = cv2.bitwise_and(img_resized, img_resized, mask=mask_final)
