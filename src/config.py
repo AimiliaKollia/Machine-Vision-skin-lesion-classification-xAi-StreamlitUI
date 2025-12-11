@@ -13,7 +13,7 @@ CLASSES = ['MEL', 'NV', 'BCC', 'AKIEC', 'BKL', 'DF', 'VASC']
 
 # Hyperparameters
 BLUR_KERNEL = (9, 9)
-MORPH_OPEN_KERNEL = (5, 5)   # Increased slightly to remove more noise
+MORPH_OPEN_KERNEL = (5, 5)   # Increase to remove more noise but risk losing information
 MORPH_DILATE_KERNEL = (5, 5)
 
 # CLAHE Settings (Smart Equalization)

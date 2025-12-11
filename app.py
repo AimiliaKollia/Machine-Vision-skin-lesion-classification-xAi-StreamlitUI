@@ -9,7 +9,7 @@ from src import features, config
 
 st.set_page_config(page_title="DermAI Classification", layout="centered")
 
-# 2. Inject Custom CSS to widen the centered container
+# 2. we need  custom styling to widen the center container
 st.markdown(
     """
     <style>
@@ -94,10 +94,8 @@ if uploaded_file is not None:
         mask_raw, mask_clean, mask_connected = features.segment_lesion(img_blur)
         mask_final, _, _, _ = features.isolate_largest_component(mask_connected)
 
-        # --- HERE IS THE FIX ---
         # Pass mask=mask_final so the visualization is blacked out around the lesion
         _, texture_vis = features.compute_texture_canny(img_gray, mask=mask_final)
-        # ---------------------
 
         img_lesion_only = cv2.bitwise_and(img_resized, img_resized, mask=mask_final)
 
