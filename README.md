@@ -1,4 +1,4 @@
-# By Kolia Aimilia, Kontoudakis Nikos, Skiada Kiki, Lampropoulou Nancy
+# By Kolia Aimilia, Kontoudakis Nikos, Skiada Kyriaki, Lampropoulou Nancy
 The project aims to classify lesions.
 
 # Project Structure
