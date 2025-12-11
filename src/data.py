@@ -65,7 +65,7 @@ def load_metadata(limit=None, balance=True):
         df, _ = train_test_split(df, train_size=actual_limit, stratify=df['label_idx'], random_state=42)
 
     # Apply balancing (Upsampling)
-    if balance:
-        df = balance_dataset(df)
+    # if balance:
+    #     df = balance_dataset(df)
 
     return df, available
