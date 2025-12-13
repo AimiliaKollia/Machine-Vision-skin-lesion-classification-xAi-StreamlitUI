@@ -47,11 +47,12 @@ def train_and_evaluate_split(X_train, y_train, X_test, y_test, classes):
     # We save a subset (e.g., 500 samples) to keep the app lightweight and fast.
     # LIME needs this to understand the "background" distribution of features.
     print("Saving training sample for App LIME initialization...")
-    if X_train_s.shape[0] > 500:
-        indices = np.random.choice(X_train_s.shape[0], 500, replace=False)
-        X_sample = X_train_s[indices]
-    else:
-        X_sample = X_train_s
+    # if X_train_s.shape[0] > 500:
+    #     indices = np.random.choice(X_train_s.shape[0], 500, replace=False)
+    #     X_sample = X_train_s[indices]
+    # else:
+    # keep all results for XAI
+    X_sample = X_train_s
     np.save(os.path.join(config.MODEL_DIR, 'X_train_sample.npy'), X_sample)
     # -------------------------------------------------
 

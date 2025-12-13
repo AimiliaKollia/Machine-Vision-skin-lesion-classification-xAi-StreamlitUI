@@ -104,6 +104,12 @@ if uploaded_file is not None:
             X_train_sample = np.load(train_sample_path)
             feature_names = features.get_feature_names()
 
+            # Check for feature mismatch (e.g. if config changed but model wasn't retrained)
+            if X_train_sample.shape[1] != len(feature_names):
+                st.warning(
+                    f"Feature count mismatch (Model: {X_train_sample.shape[1]}, Code: {len(feature_names)}). Falling back to generic names.")
+                feature_names = [f"Feature_{i}" for i in range(X_train_sample.shape[1])]
+
             # 2. Initialize Explainer
             explainer = lime.lime_tabular.LimeTabularExplainer(
                 training_data=X_train_sample,
@@ -115,21 +121,22 @@ if uploaded_file is not None:
 
             # 3. Explain this specific instance
             # We show the Top 10 features contributing to this specific decision
+            # Fix: Use labels=[int(pred_idx)] instead of top_labels=1 to avoid numpy type KeyErrors
             exp = explainer.explain_instance(
                 data_row=feat_scaled[0],
                 predict_fn=model.predict_proba,
                 num_features=10,
-                top_labels=1
+                labels=[int(pred_idx)]
             )
 
             # 4. Plot
-            fig = exp.as_pyplot_figure()
+            fig = exp.as_pyplot_figure(label=int(pred_idx))
             st.pyplot(fig)
         else:
             st.warning("LIME initialization data (X_train_sample.npy) not found. Re-run training.")
 
     except Exception as e:
-        st.error(f"Could not generate explanation: {e}")
+        st.error(f"Could not generate explanation: {type(e).__name__}: {e}")
 
     # --- Pipeline Visualization ---
     st.divider()
