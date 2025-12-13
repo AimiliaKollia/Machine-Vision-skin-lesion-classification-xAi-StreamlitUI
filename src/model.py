@@ -43,6 +43,18 @@ def train_and_evaluate_split(X_train, y_train, X_test, y_test, classes):
     X_train_s = scaler.fit_transform(X_train)
     X_test_s = scaler.transform(X_test)
 
+    # --- NEW: Save Training Sample for LIME in App ---
+    # We save a subset (e.g., 500 samples) to keep the app lightweight and fast.
+    # LIME needs this to understand the "background" distribution of features.
+    print("Saving training sample for App LIME initialization...")
+    if X_train_s.shape[0] > 500:
+        indices = np.random.choice(X_train_s.shape[0], 500, replace=False)
+        X_sample = X_train_s[indices]
+    else:
+        X_sample = X_train_s
+    np.save(os.path.join(config.MODEL_DIR, 'X_train_sample.npy'), X_sample)
+    # -------------------------------------------------
+
     # 4. Training Loop
     for name, model in techniques.items():
         print(f"\n--- Training {name} ---")
