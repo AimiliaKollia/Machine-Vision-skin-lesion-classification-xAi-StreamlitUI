@@ -29,13 +29,21 @@ def train_and_evaluate_split(X_train, y_train, X_test, y_test, classes):
 
     os.makedirs(config.MODEL_DIR, exist_ok=True)
 
-    # 2. Scaling
+    # 2. Prepare Feature Names for XAI
+    # We fetch these once so we can use them for LIME (all models) and RF Importance
+    feature_names = features.get_feature_names()
+    # Safety fallback if feature count mismatches name list
+    if len(feature_names) != X_train.shape[1]:
+        print(f"Warning: Feature names count ({len(feature_names)}) != Data columns ({X_train.shape[1]})")
+        feature_names = [f"Feature_{i}" for i in range(X_train.shape[1])]
+
+    # 3. Scaling
     # Important: Fit on Train, Transform Test
     scaler = StandardScaler()
     X_train_s = scaler.fit_transform(X_train)
     X_test_s = scaler.transform(X_test)
 
-    # 3. Training Loop
+    # 4. Training Loop
     for name, model in techniques.items():
         print(f"\n--- Training {name} ---")
         model.fit(X_train_s, y_train)
@@ -50,13 +58,23 @@ def train_and_evaluate_split(X_train, y_train, X_test, y_test, classes):
         plots.plot_multiclass_roc(model, X_test_s, y_test, classes, name)
         plots.save_classification_report(y_test, preds, classes, name)
 
-        # --- EXPLAINABLE AI (RF Only) ---
+        # --- EXPLAINABLE AI (Global: Feature Importance) ---
         if name == "RF":
-            print("Generating Feature Importance Plot (XAI)...")
-            feature_names = features.get_feature_names()
-            if len(feature_names) != X_train.shape[1]:
-                feature_names = [f"Feature_{i}" for i in range(X_train.shape[1])]
+            print("Generating Global Feature Importance Plot (RF)...")
             explainability.plot_rf_feature_importance(model, feature_names)
+
+        # --- EXPLAINABLE AI (Local: LIME) ---
+        # This works for BOTH RF and SVM
+        print(f"Generating Local LIME Explanations for {name}...")
+        explainability.generate_lime_explanations(
+            model=model,
+            X_train=X_train_s,  # LIME needs training distribution
+            X_test=X_test_s,  # Instances to explain
+            y_test=y_test,  # For labeling plots
+            feature_names=feature_names,
+            class_names=classes,
+            model_name=name
+        )
 
         # Track Best
         if acc > best_score:

@@ -60,7 +60,7 @@ def process_dataset_with_augmentation(df, is_training=False):
 
 def main():
     # 1. Load Data (Metadata only)
-    df, classes = data.load_metadata(limit=None)  # Adjust limit as needed
+    df, classes = data.load_metadata(limit=1000)  # Adjust limit as needed
 
     print("-" * 50)
     print("STEP 1: Splitting Data (Train/Test) on File Paths")
