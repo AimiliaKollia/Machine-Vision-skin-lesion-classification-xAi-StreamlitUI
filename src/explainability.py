@@ -25,7 +25,7 @@ def plot_rf_feature_importance(model, feature_names):
     plt.figure(figsize=(14, 8))
     plt.title("Random Forest: Feature Importance (Explainable AI)")
     plt.bar(range(len(importances)), importances[indices], align="center", color='teal')
-    plt.xticks(range(len(importances)), sorted_names, rotation=90)
+    plt.xticks(range(len(importances)), sorted_names, rotation=75)
     plt.xlim([-1, len(importances)])
     plt.ylabel("Relative Importance")
     plt.tight_layout()

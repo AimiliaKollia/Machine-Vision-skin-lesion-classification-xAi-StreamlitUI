@@ -175,24 +175,22 @@ def extract_all_features_pipeline(image_path_or_array):
 
     if img is None: return None
 
-    # 1. Preprocess
+    # Preprocess
     img_resized, img_gray, img_eq, img_blur = preprocess_image(img)
 
-    features = []
-
-    # 2. Segmentation
+    # Segmentation
     _, _, mask_connected = segment_lesion(img_blur)
     mask_final, area, perimeter, compactness = isolate_largest_component(mask_connected)
 
-    # 3. Color Analysis
+    # Texture
+    texture_score, _ = compute_texture_canny(img_gray, mask=mask_final)
+
+    features = []
+    # Color Analysis
     features.extend(extract_color_stats(img_resized, mask=mask_final))
     features.extend(extract_histogram_features(img_resized, mask=mask_final))
-
-    # 4. Shape
+    # Shape
     features.extend([area, perimeter, compactness])
-
-    # 5. Texture
-    texture_score, _ = compute_texture_canny(img_gray, mask=mask_final)
     features.append(texture_score)
 
     return np.array(features)
