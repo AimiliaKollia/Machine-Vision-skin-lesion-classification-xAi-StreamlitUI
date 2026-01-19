@@ -48,7 +48,7 @@ The focus is on interpretability and transparency through handcrafted feature ex
 - Explainability via feature importance and LIME (xAI)
 
 ## Dataset
-The project uses the HAM10000 dataset, containing 10,015 dermatoscopic images of seven lesion types.
+The project uses the HAM10000 dataset, containing 10,015 dermatoscopic images of 7 skin lesion types.
 
 ## Results
 Random Forest achieved higher accuracy than SVM (≈0.70 vs 0.61). 
