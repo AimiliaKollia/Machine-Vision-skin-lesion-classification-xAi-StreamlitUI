@@ -1,5 +1,5 @@
 # By Kollia Aimilia, Kontoudakis Nikos, Skiada Kyriaki, Lampropoulou Nancy
-The project aims to classify skin lesions.
+The project aims to classify images of skin lesions.
 
 # Project Structure
 The project follows a modular structure to separate configuration, data processing, computer vision logic, and model training.
