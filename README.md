@@ -28,6 +28,10 @@ ham10000_project/
 ├── app.py                   # Script 2: Streamlit Web Interface for inference
 └── requirements.txt         # Project dependencies
 
+
+Includes File:
+- `Transfer_Learning_ResNet50.ipynb`  
+  Deep learning baseline using ResNet50 transfer learning only for comparison to hand-crafted method.
 ```
 
 # Interpretable Skin Lesion Classification
@@ -47,7 +51,10 @@ The focus is on interpretability and transparency through handcrafted feature ex
 The project uses the HAM10000 dataset, containing 10,015 dermatoscopic images of seven lesion types.
 
 ## Results
-Random Forest achieved higher accuracy than SVM. Explainability analysis showed that color histogram features were the most influential.
+Random Forest achieved higher accuracy than SVM (≈0.70 vs 0.61). 
+Explainability analysis showed that color histogram features were the most influential.  
+The ResNet50 transfer learning model achieved an accuracy of ≈0.81.  
+
 
 ## Requirements
 - Python 3.x
@@ -55,6 +62,8 @@ Random Forest achieved higher accuracy than SVM. Explainability analysis showed 
 - NumPy
 - scikit-learn
 - LIME
+- Streamlit (for the interactive demo)
+- TensorFlow / Keras (for transfer learning)
 
  
 
