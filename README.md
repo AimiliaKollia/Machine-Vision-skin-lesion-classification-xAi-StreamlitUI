@@ -28,7 +28,7 @@ ham10000_project/
 ├── app.py                   # Script 2: Streamlit Web Interface for inference
 └── requirements.txt         # Project dependencies
 
-
+```
 
 # Interpretable Skin Lesion Classification
 
